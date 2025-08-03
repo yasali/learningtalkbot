@@ -1,12 +1,12 @@
-SpeechRecognition
-vosk
+openai-whisper
 gtts
 gradio
 transformers
 torch
-sounddevice
 pygame
 requests
 urllib3
 huggingface-hub
 sentencepiece
+soundfile
+ffmpeg-python
