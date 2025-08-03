@@ -1,0 +1,12 @@
+openai-whisper
+gtts
+gradio
+transformers
+torch
+pygame
+requests
+urllib3
+huggingface-hub
+sentencepiece
+soundfile
+ffmpeg-python
