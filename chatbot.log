@@ -1,1 +1,31 @@
-bash: python: command not found
+nohup: ignoring input
+/workspace/chatbot_env/lib/python3.13/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+Device set to use cpu
+Truncation was not explicitly activated but `max_length` is provided a specific value, please use `truncation=True` to explicitly truncate examples to max length. Defaulting to 'longest_first' truncation strategy. If you encode pairs of sequences (GLUE-style) with the tokenizer you can select this strategy more precisely by providing a specific strategy to `truncation`.
+/workspace/swedish_chatbot_whisper.py:367: UserWarning: You have not specified a value for the `type` parameter. Defaulting to the 'tuples' format for chatbot messages, but this is deprecated and will be removed in a future version of Gradio. Please set type='messages' instead, which uses openai-style dictionaries with 'role' and 'content' keys.
+  conversation_history = gr.Chatbot(
+pygame 2.6.1 (SDL 2.28.4, Python 3.13.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+🇸🇪 SVENSK RÖSTCHATBOT MED WHISPER
+==================================================
+🎤 Loading Whisper model for Swedish speech recognition...
+✅ Whisper model loaded successfully!
+
+🧠 Loading Swedish language model...
+Trying model: AI-Sweden-Models/gpt-sw3-126m
+✅ Successfully loaded: AI-Sweden-Models/gpt-sw3-126m
+🧪 Test response: Hej, hur mår du?
+
+
+Mannen jag har varit med och skrivit med har inte fått ett enda svar. Jag vet int...
+
+🎉 All models loaded successfully!
+📱 Speech Recognition: Whisper (base)
+🧠 Language Model: AI-Sweden-Models/gpt-sw3-126m
+🔊 Text-to-Speech: Google TTS
+
+🚀 Starting web interface...
+📱 The chatbot will open in your browser automatically.
+🎤 Click the microphone to start talking!
+❌ Error starting interface: Cannot find empty port in range: 7860-7860. You can specify a different port by setting the GRADIO_SERVER_PORT environment variable or passing the `server_port` parameter to `launch()`.
