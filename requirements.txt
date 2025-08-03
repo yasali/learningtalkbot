@@ -1,0 +1,10 @@
+SpeechRecognition
+vosk
+gtts
+gradio
+transformers
+torch
+sounddevice
+pygame
+requests
+urllib3
