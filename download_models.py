@@ -29,9 +29,9 @@ def download_vosk_model():
     print("🎤 DOWNLOADING VOSK SWEDISH MODEL")
     print("=" * 50)
     
-    model_dir = "vosk-model-sv-rhasspy-0.15"
-    model_zip = "vosk-model-sv-rhasspy-0.15.zip"
-    model_url = "https://alphacephei.com/vosk/models/vosk-model-sv-rhasspy-0.15.zip"
+    model_dir = "vosk-model-small-sv-0.15"
+    model_zip = "vosk-model-small-sv-0.15.zip"
+    model_url = "https://alphacephei.com/vosk/models/vosk-model-small-sv-0.15.zip"
     
     if os.path.exists(model_dir):
         print(f"✅ Vosk model already exists in {model_dir}")
@@ -71,36 +71,96 @@ def download_gpt_sw3_model():
     
     try:
         from transformers import AutoTokenizer, AutoModelForCausalLM
+        from huggingface_hub import login
         
-        # Available GPT-SW3 models (choose based on your hardware)
+        # Check for Hugging Face token
+        hf_token = None
+        token_file = os.path.expanduser("~/.huggingface/token")
+        
+        # Try to get token from environment or file
+        hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+        
+        if not hf_token and os.path.exists(token_file):
+            try:
+                with open(token_file, 'r') as f:
+                    hf_token = f.read().strip()
+            except:
+                pass
+        
+        if not hf_token:
+            print("🔑 Hugging Face token needed for GPT-SW3 model")
+            print("Options to provide your token:")
+            print("1. Set environment variable: export HF_TOKEN='your_token_here'")
+            print("2. Login with: huggingface-cli login")
+            print("3. Enter token when prompted below")
+            
+            hf_token = input("\nEnter your Hugging Face token (or press Enter to skip): ").strip()
+        
+        if hf_token:
+            try:
+                login(token=hf_token)
+                print("✅ Logged in to Hugging Face!")
+            except Exception as e:
+                print(f"⚠️ Token login failed: {e}")
+        
+        # Available GPT-SW3 models (corrected names)
         models = {
             "small": "AI-Sweden/gpt-sw3-126m",      # ~500MB, fast, basic responses
-            "medium": "AI-Sweden/gpt-sw3-356m",     # ~1.4GB, better quality
+            "medium": "AI-Sweden/gpt-sw3-356m",     # ~1.4GB, better quality  
             "large": "AI-Sweden/gpt-sw3-1.3b",      # ~5GB, best quality, requires good GPU
         }
         
-        print("Available GPT-SW3 models:")
+        # Try alternative models if GPT-SW3 not available
+        fallback_models = {
+            "swedish-small": "KBLab/bert-base-swedish-cased",
+            "multilingual": "microsoft/DialoGPT-small",
+            "general": "distilgpt2"
+        }
+        
+        print("Available Swedish models:")
         for size, model_name in models.items():
             print(f"  {size.upper()}: {model_name}")
         
-        # Default to medium model (good balance)
-        model_name = models["small"]  # Start with smallest for compatibility
+        print("\nFallback models (if GPT-SW3 unavailable):")
+        for name, model_name in fallback_models.items():
+            print(f"  {name.upper()}: {model_name}")
+        
+        # Try GPT-SW3 first, then fallbacks
+        model_name = models["small"]  # Start with smallest
         
         print(f"\n📥 Downloading model: {model_name}")
         print("📁 This may take several minutes depending on your internet connection...")
         print("💾 Models will be cached in ~/.cache/huggingface/")
         
-        # Download tokenizer
-        print("\n🔤 Downloading tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        print("✅ Tokenizer downloaded successfully!")
-        
-        # Download model
-        print("\n🤖 Downloading model weights...")
-        model = AutoModelForCausalLM.from_pretrained(model_name)
-        print("✅ GPT-SW3 model downloaded successfully!")
-        
-        return model_name, tokenizer, model
+        try:
+            # Download tokenizer
+            print("\n🔤 Downloading tokenizer...")
+            tokenizer = AutoTokenizer.from_pretrained(model_name, token=hf_token)
+            print("✅ Tokenizer downloaded successfully!")
+            
+            # Download model
+            print("\n🤖 Downloading model weights...")
+            model = AutoModelForCausalLM.from_pretrained(model_name, token=hf_token)
+            print("✅ GPT-SW3 model downloaded successfully!")
+            
+            return model_name, tokenizer, model
+            
+        except Exception as e:
+            print(f"❌ GPT-SW3 download failed: {e}")
+            print("\n🔄 Trying fallback model...")
+            
+            # Try fallback model
+            fallback_name = fallback_models["general"]
+            print(f"📥 Downloading fallback model: {fallback_name}")
+            
+            tokenizer = AutoTokenizer.from_pretrained(fallback_name)
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+                
+            model = AutoModelForCausalLM.from_pretrained(fallback_name)
+            print("✅ Fallback model downloaded successfully!")
+            
+            return fallback_name, tokenizer, model
         
     except ImportError:
         print("❌ Error: transformers library not installed")
@@ -124,7 +184,7 @@ def test_models():
     # Test Vosk model
     try:
         import vosk
-        model_dir = "vosk-model-sv-rhasspy-0.15"
+        model_dir = "vosk-model-small-sv-0.15"
         if os.path.exists(model_dir):
             vosk_model = vosk.Model(model_dir)
             print("✅ Vosk model loads successfully!")
@@ -133,15 +193,26 @@ def test_models():
     except Exception as e:
         print(f"❌ Error loading Vosk model: {e}")
     
-    # Test GPT-SW3 model
+    # Test available models
     try:
         from transformers import AutoTokenizer, AutoModelForCausalLM
-        model_name = "AI-Sweden/gpt-sw3-126m"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(model_name)
-        print("✅ GPT-SW3 model loads successfully!")
+        
+        # Try different models to see what's available
+        test_models = ["AI-Sweden/gpt-sw3-126m", "distilgpt2"]
+        
+        for model_name in test_models:
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                print(f"✅ Model {model_name} loads successfully!")
+                break
+            except Exception as e:
+                print(f"⚠️ Model {model_name} not available: {str(e)[:100]}...")
+                continue
+        else:
+            print("❌ No models could be loaded")
+            
     except Exception as e:
-        print(f"❌ Error loading GPT-SW3 model: {e}")
+        print(f"❌ Error testing models: {e}")
 
 def show_model_info():
     """Show information about the models that will be downloaded"""
@@ -150,24 +221,24 @@ def show_model_info():
     
     print("\n📋 MODELS TO DOWNLOAD:")
     print("\n1. 🎤 VOSK SWEDISH SPEECH RECOGNITION MODEL")
-    print("   - Name: vosk-model-sv-rhasspy-0.15")
+    print("   - Name: vosk-model-small-sv-0.15")
     print("   - Size: ~45MB")
     print("   - Purpose: Convert Swedish speech to text")
     print("   - Source: https://alphacephei.com/vosk/models/")
     print("   - License: Apache 2.0")
     print("   - Works: Completely offline")
     
-    print("\n2. 🧠 GPT-SW3 SWEDISH LANGUAGE MODEL")
-    print("   - Name: AI-Sweden/gpt-sw3-126m (small version)")
+    print("\n2. 🧠 SWEDISH LANGUAGE MODEL")
+    print("   - Primary: AI-Sweden/gpt-sw3-126m (requires HF token)")
+    print("   - Fallback: distilgpt2 (general purpose)")
     print("   - Size: ~500MB")
-    print("   - Purpose: Generate Swedish text responses")
-    print("   - Source: Hugging Face (AI Sweden)")
-    print("   - License: MIT")
+    print("   - Purpose: Generate text responses")
+    print("   - Source: Hugging Face")
     print("   - Works: Locally, no internet needed after download")
     
     print("\n📁 STORAGE LOCATIONS:")
-    print(f"   - Vosk model: {os.path.abspath('vosk-model-sv-rhasspy-0.15')}")
-    print(f"   - GPT-SW3 cache: {os.path.expanduser('~/.cache/huggingface/')}")
+    print(f"   - Vosk model: {os.path.abspath('vosk-model-small-sv-0.15')}")
+    print(f"   - Language model cache: {os.path.expanduser('~/.cache/huggingface/')}")
     
     print("\n💾 TOTAL DISK SPACE NEEDED: ~600MB")
     print("\n⏱️  DOWNLOAD TIME: 5-15 minutes (depending on internet speed)")

@@ -8,3 +8,4 @@ sounddevice
 pygame
 requests
 urllib3
+huggingface-hub

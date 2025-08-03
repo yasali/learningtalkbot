@@ -19,7 +19,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
 # Vosk Speech-to-Text configuration
-MODEL_DIR = "vosk-model-sv-rhasspy-0.15"
+MODEL_DIR = "vosk-model-small-sv-0.15"
 SAMPLERATE = 16000
 AUDIO_DEVICE = None  # Use default device
 audio_queue = queue.Queue()
@@ -36,7 +36,7 @@ def download_vosk_model():
     
     if not os.path.exists(MODEL_DIR):
         print("Downloading Vosk Swedish model (this may take a few minutes)...")
-        url = "https://alphacephei.com/vosk/models/vosk-model-sv-rhasspy-0.15.zip"
+        url = "https://alphacephei.com/vosk/models/vosk-model-small-sv-0.15.zip"
         
         try:
             urllib.request.urlretrieve(url, "vosk-model.zip")
@@ -47,6 +47,8 @@ def download_vosk_model():
             print("Vosk model downloaded and extracted successfully!")
         except Exception as e:
             print(f"Error downloading Vosk model: {e}")
+            print(f"Please download manually from: {url}")
+            print(f"Extract to: {MODEL_DIR}")
             raise
     else:
         print("Vosk model already exists.")
@@ -64,38 +66,62 @@ def initialize_models():
         print(f"Error loading Vosk model: {e}")
         raise
     
-    # Initialize GPT-SW3 model
+    # Initialize language model
     try:
-        print("Loading GPT-SW3 model (this may take several minutes on first run)...")
-        model_name = "AI-Sweden/gpt-sw3-126m"  # Using smaller model for better performance
+        print("Loading language model (this may take several minutes on first run)...")
         
-        # Load tokenizer and model
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(model_name)
+        # Try Swedish models first, then fallback to general models
+        model_options = [
+            "AI-Sweden/gpt-sw3-126m",      # Swedish model (requires token)
+            "distilgpt2",                  # General English model
+            "microsoft/DialoGPT-small"     # Conversational model
+        ]
         
-        # Create pipeline
-        chatbot_pipeline = pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            device=0 if device == "cuda" else -1,
-            torch_dtype=torch.float16 if device == "cuda" else torch.float32
-        )
-        print("GPT-SW3 model loaded successfully!")
+        # Check for Hugging Face token
+        hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+        
+        chatbot_pipeline = None
+        for model_name in model_options:
+            try:
+                print(f"Trying model: {model_name}")
+                
+                # Load tokenizer and model
+                if hf_token and "AI-Sweden" in model_name:
+                    tokenizer = AutoTokenizer.from_pretrained(model_name, token=hf_token)
+                    model = AutoModelForCausalLM.from_pretrained(model_name, token=hf_token)
+                else:
+                    tokenizer = AutoTokenizer.from_pretrained(model_name)
+                    model = AutoModelForCausalLM.from_pretrained(model_name)
+                
+                # Set pad token if not available
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                
+                # Create pipeline
+                chatbot_pipeline = pipeline(
+                    "text-generation",
+                    model=model,
+                    tokenizer=tokenizer,
+                    device=0 if device == "cuda" else -1,
+                    torch_dtype=torch.float16 if device == "cuda" else torch.float32
+                )
+                print(f"✅ Model {model_name} loaded successfully!")
+                break
+                
+            except Exception as e:
+                print(f"⚠️ Model {model_name} failed: {str(e)[:100]}...")
+                continue
+        
+        if chatbot_pipeline is None:
+            raise Exception("No language model could be loaded")
+            
     except Exception as e:
-        print(f"Error loading GPT-SW3 model: {e}")
-        print("Falling back to a smaller model...")
-        try:
-            # Fallback to a different model
-            chatbot_pipeline = pipeline(
-                "text-generation", 
-                model="AI-Sweden/gpt-sw3-126m",
-                device=0 if device == "cuda" else -1
-            )
-            print("Fallback model loaded successfully!")
-        except Exception as e2:
-            print(f"Error loading fallback model: {e2}")
-            raise
+        print(f"Error loading language model: {e}")
+        print("\n💡 SOLUTIONS:")
+        print("1. For Swedish models: Set HF_TOKEN environment variable")
+        print("2. Install required packages: pip install transformers torch")
+        print("3. Check internet connection for model downloads")
+        raise
 
 def get_text_from_mic():
     """Records audio from microphone and converts to text using Vosk"""
