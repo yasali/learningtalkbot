@@ -40,7 +40,7 @@ vosk-model-sv-rhasspy-0.15/
 
 ### 2. 🧠 GPT-SW3 Swedish Language Model
 
-**Model Name**: `AI-Sweden/gpt-sw3-126m` (recommended for most users)  
+**Model Name**: `AI-Sweden-Models/gpt-sw3-126m` (recommended for most users)  
 **Purpose**: Generate Swedish text responses  
 **Size**: ~500MB  
 **License**: MIT  
@@ -48,16 +48,17 @@ vosk-model-sv-rhasspy-0.15/
 #### Available Model Sizes:
 | Size | Model Name | Size | RAM Required | Quality | Speed |
 |------|------------|------|--------------|---------|-------|
-| Small | `AI-Sweden/gpt-sw3-126m` | ~500MB | 2GB | Basic | Fast |
-| Medium | `AI-Sweden/gpt-sw3-356m` | ~1.4GB | 4GB | Good | Medium |
-| Large | `AI-Sweden/gpt-sw3-1.3b` | ~5GB | 8GB+ | Best | Slow |
+| Small | `AI-Sweden-Models/gpt-sw3-126m` | ~500MB | 2GB | Basic | Fast |
+| Medium | `AI-Sweden-Models/gpt-sw3-356m` | ~1.4GB | 4GB | Good | Medium |
+| Large | `AI-Sweden-Models/gpt-sw3-1.3b` | ~5GB | 8GB+ | Best | Slow |
+| Alternative | `neph1/bellman-7b-mistral-instruct-v0.2` | ~7GB | 8GB+ | Excellent | Medium |
 
 #### Automatic Download (Recommended):
 ```python
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Download and cache the model
-model_name = "AI-Sweden/gpt-sw3-126m"
+model_name = "AI-Sweden-Models/gpt-sw3-126m"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 ```
@@ -68,7 +69,7 @@ model = AutoModelForCausalLM.from_pretrained(model_name)
 git lfs install
 
 # Clone the model repository
-git clone https://huggingface.co/AI-Sweden/gpt-sw3-126m
+git clone https://huggingface.co/AI-Sweden-Models/gpt-sw3-126m
 
 # The model will be in the gpt-sw3-126m/ directory
 ```
@@ -133,7 +134,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
 # Load the model and tokenizer
-model_name = "AI-Sweden/gpt-sw3-126m"
+model_name = "AI-Sweden-Models/gpt-sw3-126m"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
@@ -187,8 +188,8 @@ rm vosk-model-sv-rhasspy-0.15.zip
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 print("Downloading GPT-SW3 model...")
-tokenizer = AutoTokenizer.from_pretrained("AI-Sweden/gpt-sw3-126m")
-model = AutoModelForCausalLM.from_pretrained("AI-Sweden/gpt-sw3-126m")
+tokenizer = AutoTokenizer.from_pretrained("AI-Sweden-Models/gpt-sw3-126m")
+model = AutoModelForCausalLM.from_pretrained("AI-Sweden-Models/gpt-sw3-126m")
 print("Download complete!")
 ```
 
@@ -206,8 +207,8 @@ print("✅ Vosk model loaded successfully!")
 
 # Test GPT-SW3
 print("Testing GPT-SW3 model...")
-tokenizer = AutoTokenizer.from_pretrained("AI-Sweden/gpt-sw3-126m")
-model = AutoModelForCausalLM.from_pretrained("AI-Sweden/gpt-sw3-126m")
+tokenizer = AutoTokenizer.from_pretrained("AI-Sweden-Models/gpt-sw3-126m")
+model = AutoModelForCausalLM.from_pretrained("AI-Sweden-Models/gpt-sw3-126m")
 print("✅ GPT-SW3 model loaded successfully!")
 
 print("🎉 All models ready!")
@@ -240,7 +241,7 @@ pip uninstall transformers
 pip install transformers
 
 # Test with minimal example
-python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('AI-Sweden/gpt-sw3-126m')"
+python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('AI-Sweden-Models/gpt-sw3-126m')"
 ```
 
 ### Memory Issues:
@@ -248,8 +249,8 @@ python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained
 # For low memory systems, use smallest model
 python -c "
 from transformers import AutoTokenizer, AutoModelForCausalLM
-tokenizer = AutoTokenizer.from_pretrained('AI-Sweden/gpt-sw3-126m')
-model = AutoModelForCausalLM.from_pretrained('AI-Sweden/gpt-sw3-126m', torch_dtype='float16')
+tokenizer = AutoTokenizer.from_pretrained('AI-Sweden-Models/gpt-sw3-126m')
+model = AutoModelForCausalLM.from_pretrained('AI-Sweden-Models/gpt-sw3-126m', torch_dtype='float16')
 "
 ```
 
@@ -270,10 +271,10 @@ python download_models.py
 # Manual setup
 wget https://alphacephei.com/vosk/models/vosk-model-sv-rhasspy-0.15.zip
 unzip vosk-model-sv-rhasspy-0.15.zip
-python -c "from transformers import AutoTokenizer, AutoModelForCausalLM; AutoTokenizer.from_pretrained('AI-Sweden/gpt-sw3-126m'); AutoModelForCausalLM.from_pretrained('AI-Sweden/gpt-sw3-126m')"
+python -c "from transformers import AutoTokenizer, AutoModelForCausalLM; AutoTokenizer.from_pretrained('AI-Sweden-Models/gpt-sw3-126m'); AutoModelForCausalLM.from_pretrained('AI-Sweden-Models/gpt-sw3-126m')"
 
 # Test everything
-python -c "import vosk; from transformers import AutoTokenizer, AutoModelForCausalLM; vosk.Model('vosk-model-sv-rhasspy-0.15'); AutoTokenizer.from_pretrained('AI-Sweden/gpt-sw3-126m'); print('✅ All models ready!')"
+python -c "import vosk; from transformers import AutoTokenizer, AutoModelForCausalLM; vosk.Model('vosk-model-small-sv-0.15'); AutoTokenizer.from_pretrained('AI-Sweden-Models/gpt-sw3-126m'); print('✅ All models ready!')"
 ```
 
 ---

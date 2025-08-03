@@ -48,7 +48,7 @@ unzip vosk-model-sv-rhasspy-0.15.zip
 rm vosk-model-sv-rhasspy-0.15.zip
 
 # Download GPT-SW3 model (run in Python)
-python -c "from transformers import AutoTokenizer, AutoModelForCausalLM; AutoTokenizer.from_pretrained('AI-Sweden/gpt-sw3-126m'); AutoModelForCausalLM.from_pretrained('AI-Sweden/gpt-sw3-126m')"
+python -c "from transformers import AutoTokenizer, AutoModelForCausalLM; AutoTokenizer.from_pretrained('AI-Sweden-Models/gpt-sw3-126m'); AutoModelForCausalLM.from_pretrained('AI-Sweden-Models/gpt-sw3-126m')"
 ```
 
 ### Step 3: Launch Chatbot
@@ -74,8 +74,8 @@ python swedish_chatbot.py
 - **Works**: Completely offline
 
 ### GPT-SW3 Swedish Model
-- **Model**: `AI-Sweden/gpt-sw3-126m` (~500MB)
-- **Source**: https://huggingface.co/AI-Sweden/gpt-sw3-126m
+- **Model**: `AI-Sweden-Models/gpt-sw3-126m` (~500MB)
+- **Source**: https://huggingface.co/AI-Sweden-Models/gpt-sw3-126m
 - **Purpose**: Generates Swedish text responses
 - **Location**: `~/.cache/huggingface/transformers/`
 - **Works**: Locally after download
@@ -124,7 +124,7 @@ speaker-test -t wav -c 2
 ```bash
 # Use smaller model for low-memory systems
 # Edit swedish_chatbot.py and change:
-model_name = "AI-Sweden/gpt-sw3-126m"  # Smallest version
+model_name = "AI-Sweden-Models/gpt-sw3-126m"  # Smallest version
 ```
 
 ## 📁 Project Structure After Setup

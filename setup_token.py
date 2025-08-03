@@ -136,7 +136,7 @@ def test_token(token=None):
         
         # Try to access Swedish model
         print("🇸🇪 Testing Swedish model access...")
-        tokenizer = AutoTokenizer.from_pretrained("AI-Sweden/gpt-sw3-126m", token=token)
+        tokenizer = AutoTokenizer.from_pretrained("AI-Sweden-Models/gpt-sw3-126m", token=token)
         print("✅ Swedish model accessible!")
         
         return True

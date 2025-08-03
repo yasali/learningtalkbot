@@ -72,9 +72,10 @@ def initialize_models():
         
         # Try Swedish models first, then fallback to general models
         model_options = [
-            "AI-Sweden/gpt-sw3-126m",      # Swedish model (requires token)
-            "distilgpt2",                  # General English model
-            "microsoft/DialoGPT-small"     # Conversational model
+            "AI-Sweden-Models/gpt-sw3-126m",             # Official Swedish model (requires token)
+            "neph1/bellman-7b-mistral-instruct-v0.2",    # Open Swedish model
+            "distilgpt2",                                 # General English model
+            "microsoft/DialoGPT-small"                    # Conversational model
         ]
         
         # Check for Hugging Face token
@@ -86,7 +87,7 @@ def initialize_models():
                 print(f"Trying model: {model_name}")
                 
                 # Load tokenizer and model
-                if hf_token and "AI-Sweden" in model_name:
+                if hf_token and "AI-Sweden-Models" in model_name:
                     tokenizer = AutoTokenizer.from_pretrained(model_name, token=hf_token)
                     model = AutoModelForCausalLM.from_pretrained(model_name, token=hf_token)
                 else:

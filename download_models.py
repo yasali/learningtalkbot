@@ -105,14 +105,14 @@ def download_gpt_sw3_model():
         
         # Available GPT-SW3 models (corrected names)
         models = {
-            "small": "AI-Sweden/gpt-sw3-126m",      # ~500MB, fast, basic responses
-            "medium": "AI-Sweden/gpt-sw3-356m",     # ~1.4GB, better quality  
-            "large": "AI-Sweden/gpt-sw3-1.3b",      # ~5GB, best quality, requires good GPU
+            "small": "AI-Sweden-Models/gpt-sw3-126m",      # ~500MB, fast, basic responses
+            "medium": "AI-Sweden-Models/gpt-sw3-356m",     # ~1.4GB, better quality  
+            "large": "AI-Sweden-Models/gpt-sw3-1.3b",      # ~5GB, best quality, requires good GPU
         }
         
         # Try alternative models if GPT-SW3 not available
         fallback_models = {
-            "swedish-small": "KBLab/bert-base-swedish-cased",
+            "swedish-small": "neph1/bellman-7b-mistral-instruct-v0.2",  # Working Swedish model
             "multilingual": "microsoft/DialoGPT-small",
             "general": "distilgpt2"
         }
@@ -149,8 +149,25 @@ def download_gpt_sw3_model():
             print(f"❌ GPT-SW3 download failed: {e}")
             print("\n🔄 Trying fallback model...")
             
-            # Try fallback model
-            fallback_name = fallback_models["general"]
+            # Try fallback model (Swedish first, then general)
+            fallback_name = fallback_models["swedish-small"]
+            print(f"📥 Downloading Swedish fallback model: {fallback_name}")
+            
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(fallback_name)
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                    
+                model = AutoModelForCausalLM.from_pretrained(fallback_name)
+                print("✅ Swedish fallback model downloaded successfully!")
+                
+                return fallback_name, tokenizer, model
+                
+            except Exception as e2:
+                print(f"❌ Swedish fallback failed: {str(e2)[:100]}...")
+                print("🔄 Trying general fallback model...")
+                
+                fallback_name = fallback_models["general"]
             print(f"📥 Downloading fallback model: {fallback_name}")
             
             tokenizer = AutoTokenizer.from_pretrained(fallback_name)
@@ -198,7 +215,7 @@ def test_models():
         from transformers import AutoTokenizer, AutoModelForCausalLM
         
         # Try different models to see what's available
-        test_models = ["AI-Sweden/gpt-sw3-126m", "distilgpt2"]
+        test_models = ["AI-Sweden-Models/gpt-sw3-126m", "distilgpt2"]
         
         for model_name in test_models:
             try:
