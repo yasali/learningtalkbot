@@ -430,11 +430,15 @@ def main():
     demo = create_gradio_interface()
     
     try:
+        print("🌐 Starting local server...")
+        print("📱 Open in your browser: http://localhost:7860")
+        print("🎤 Click microphone button to grant permissions")
+        
         demo.launch(
-            server_name="0.0.0.0",  # Allow external access
+            server_name="127.0.0.1",  # Local access only
             server_port=7860,
-            share=True,   # Create public URL for remote access
-            inbrowser=False,  # Don't auto-open browser
+            share=False,  # No public URL needed for local use
+            inbrowser=True,   # Auto-open browser
             show_error=True,
             quiet=False
         )
