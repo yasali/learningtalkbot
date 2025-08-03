@@ -1,220 +1,176 @@
-# 🇸🇪 Svensk Röst-Chatbot (Swedish Voice Chatbot)
+# 🇸🇪 Swedish Voice Chatbot
 
-En helt gratis röst-aktiverad chatbot som förstår och talar svenska! Använder endast open-source modeller som körs lokalt på din dator.
+A completely free, open-source Swedish voice chatbot using Whisper, Swedish language models, and text-to-speech.
 
-*A completely free voice-activated chatbot that understands and speaks Swedish! Uses only open-source models running locally on your computer.*
+## ✨ Features
 
-## ✨ Funktioner (Features)
+- 🎤 **Swedish Speech Recognition** - Whisper with Swedish optimization
+- 🧠 **Swedish AI Responses** - Bellman model for natural conversation  
+- 🔊 **Swedish Text-to-Speech** - Google TTS
+- 💬 **Natural Conversation** - Optimized for back-and-forth chat
+- 🌐 **Web Interface** - Easy-to-use Gradio interface
+- 🔒 **Completely Free** - No API keys required for basic functionality
 
-- 🎤 **Tal-till-text**: Offline taligenkänning med Vosk
-- 🧠 **Svensk AI**: GPT-SW3 modell för svenskt språkförståelse
-- 🔊 **Text-till-tal**: Google Text-to-Speech för naturligt ljud
-- 🌐 **Webb-gränssnitt**: Enkelt att använda med Gradio
-- 💻 **Helt lokalt**: Ingen data skickas till externa servrar (förutom TTS)
-- 🆓 **Gratis**: Använder endast open-source komponenter
+## 🚀 Quick Start
 
-## 🚀 Snabbstart (Quick Start)
-
-### 1. Automatisk Installation
-
+### 1. Clone the Repository
 ```bash
-# Klona projektet
-git clone <repository-url>
-cd swedish-voice-chatbot
-
-# Kör setup-scriptet
-python3 setup.py
+git clone <your-repo-url>
+cd swedish-chatbot
 ```
 
-### 2. Manuell Installation
-
+### 2. Set Up Environment
 ```bash
-# Skapa virtuell miljö
+# Automatic setup (recommended)
+./setup_environment.sh
+
+# Or manual setup:
 python3 -m venv chatbot_env
-source chatbot_env/bin/activate  # Linux/Mac
-# eller
-chatbot_env\Scripts\activate     # Windows
-
-# Installera dependencies
+source chatbot_env/bin/activate
 pip install -r requirements.txt
-
-# Starta chatboten
-python swedish_chatbot.py
 ```
 
-### 3. Öppna i Webbläsare
-
-Gå till `http://localhost:7860` och börja prata svenska!
-
-## 📋 Systemkrav (System Requirements)
-
-### Minimum:
-- Python 3.8+
-- 4GB RAM
-- Mikrofon
-- Internetanslutning (för text-till-tal)
-
-### Rekommenderat:
-- Python 3.9+
-- 8GB+ RAM
-- GPU med CUDA (för snabbare AI-inferens)
-- Bra mikrofon för bättre taligenkänning
-
-## 🛠️ Installation per Operativsystem
-
-### Linux (Ubuntu/Debian)
+### 3. Get Hugging Face Token (Optional)
+For best Swedish models, get a free token from [Hugging Face](https://huggingface.co/settings/tokens):
 ```bash
-# Installera systemberoenden
-sudo apt-get update
-sudo apt-get install -y portaudio19-dev python3-pyaudio ffmpeg mpg123 alsa-utils
-
-# Följ sedan snabbstart-instruktionerna
+export HF_TOKEN='your_token_here'
 ```
 
-### macOS
+### 4. Run the Chatbot
 ```bash
-# Installera Homebrew om det inte finns
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Easy way:
+./start_fixed_chatbot.sh
 
-# Installera beroenden
-brew install portaudio ffmpeg mpg123
-
-# Följ sedan snabbstart-instruktionerna
+# Or manual:
+source chatbot_env/bin/activate
+export HF_TOKEN='your_token_here'  # Optional
+python swedish_chatbot_fixed.py
 ```
 
-### Windows
+### 5. Use the Chatbot
+- Open **http://localhost:7861** in your browser
+- Click the microphone and speak Swedish
+- Listen to the AI's Swedish response
+- Continue the conversation naturally!
+
+## 📋 System Requirements
+
+### macOS (Homebrew):
 ```bash
-# Installera Python från python.org
-# Följ snabbstart-instruktionerna
-# Eventuellt behöver du installera audio-codecs manuellt
+brew install python@3.11 portaudio ffmpeg
 ```
 
-## 🎯 Användning (Usage)
-
-1. **Starta chatboten**: `python swedish_chatbot.py`
-2. **Öppna webbläsaren** på den visade URL:en
-3. **Klicka på 🎤 Prata** knappen
-4. **Vänta** på "Lyssnar..." meddelandet
-5. **Tala tydligt på svenska** (10 sekunder timeout)
-6. **Vänta** på chatbotens svar
-7. **Upprepa** för fortsatt konversation
-
-### Tips för Bästa Resultat:
-- Tala tydligt och inte för snabbt
-- Använd vardagssvenska
-- Vänta tills "Lyssnar..." visas
-- Håll bakgrundsljud till minimum
-- Testa mikrofonnivån innan du börjar
-
-## 🔧 Konfiguration
-
-### Ändra AI-modell:
-Redigera `swedish_chatbot.py` och ändra `model_name`:
-```python
-# För snabbare men mindre kvalitet:
-model_name = "AI-Sweden/gpt-sw3-126m"
-
-# För bättre kvalitet men långsammare:
-model_name = "AI-Sweden/gpt-sw3-356m"
-```
-
-### Ändra Vosk-modell:
-Ladda ner en annan modell från [Vosk Models](https://alphacephei.com/vosk/models) och uppdatera `MODEL_DIR`.
-
-### Ändra TTS-språk:
-```python
-tts = gTTS(text=text, lang='sv', slow=False)  # 'sv' för svenska
-```
-
-## 🐛 Felsökning (Troubleshooting)
-
-### Problem med Ljud
+### Linux (Ubuntu/Debian):
 ```bash
-# Linux: Testa mikrofon
-arecord -l
-aplay -l
-
-# Kontrollera volymnivåer
-alsamixer
+sudo apt install python3-venv python3-pip portaudio19-dev ffmpeg mpg123 alsa-utils
 ```
 
-### Import-fel
+### Windows:
+- Install Python 3.11+
+- Install ffmpeg
+- The setup script will handle the rest
+
+## 🎯 Test Phrases
+
+Try these Swedish phrases to test the chatbot:
+- "Hej, vad heter du?"
+- "Hur mår du idag?"
+- "Berätta om Sverige"
+- "Vad gillar du?"
+- "Kan du hjälpa mig?"
+
+## 📁 Repository Structure
+
+```
+swedish-chatbot/
+├── swedish_chatbot_fixed.py      # Main chatbot (recommended)
+├── swedish_chatbot_whisper.py    # Alternative version
+├── requirements.txt              # Python dependencies
+├── setup_environment.sh          # Environment setup script
+├── start_fixed_chatbot.sh        # Quick start script
+├── setup_token.py                # HF token setup helper
+├── .gitignore                    # Excludes virtual env and models
+├── README.md                     # This file
+├── FIXED_VERSION_GUIDE.md        # Detailed fix explanations
+└── docs/                         # Additional documentation
+    ├── MODEL_SETUP.md
+    ├── QUICKSTART.md
+    └── FIXES_SUMMARY.md
+```
+
+## ⚠️ Important Notes
+
+### Virtual Environment
+- **The `chatbot_env/` folder is NOT included in git** (it's in `.gitignore`)
+- **Never commit the virtual environment** - it's huge (several GB)
+- **Each user creates their own environment** using `setup_environment.sh`
+
+### AI Models
+- **Models are downloaded automatically** on first run
+- **Models are cached locally** (~2-7GB depending on which models load)
+- **Model cache is NOT committed** to the repository
+
+### Dependencies
+- **Only `requirements.txt` is committed** - lists what to install
+- **Virtual environment is created fresh** for each installation
+- **This keeps the repository small** and portable
+
+## 🔧 Troubleshooting
+
+### Microphone Issues (macOS):
+- Grant microphone permissions in System Preferences
+- Allow your browser to access microphone
+
+### Model Download Issues:
 ```bash
-# Reinstallera dependencies
-pip install --upgrade -r requirements.txt
-
-# Eller installera individuellt:
-pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Clear cache and retry
+rm -rf ~/.cache/huggingface/
+python setup_token.py  # Set up HF token
+python swedish_chatbot_fixed.py
 ```
 
-### Slow Model Loading
+### Audio Issues:
 ```bash
-# Använd mindre modell eller lägg till GPU-support:
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# Install audio dependencies
+brew install portaudio ffmpeg  # macOS
+sudo apt install portaudio19-dev ffmpeg  # Linux
 ```
 
-### Permission Errors (Linux)
-```bash
-# Lägg till användare i audio-gruppen
-sudo usermod -a -G audio $USER
-# Logga ut och in igen
-```
+## 🌟 Features
 
-## 📂 Projektstruktur
+### Speech Recognition
+- Uses OpenAI Whisper "small" model
+- Optimized Swedish language settings
+- Better accuracy than basic Whisper
 
-```
-swedish-voice-chatbot/
-├── swedish_chatbot.py      # Huvudapplikation
-├── requirements.txt        # Python-dependencies
-├── setup.py               # Automatisk setup-script
-├── README.md              # Denna fil
-└── vosk-model-sv-*        # Vosk-modell (laddas ner automatiskt)
-```
+### Language Models (Priority Order)
+1. **Bellman** (`neph1/bellman-7b-mistral-instruct-v0.2`) - Best Swedish conversation
+2. **GPT-SW3** (`AI-Sweden-Models/gpt-sw3-126m`) - Official Swedish model (requires HF token)
+3. **DialoGPT** (`microsoft/DialoGPT-small`) - Good fallback
+4. **DistilGPT2** - Basic fallback
 
-## 🔄 Teknisk Arkitektur
+### Response Quality
+- Short, natural responses (40 tokens max)
+- Artifact filtering (removes "Datum:", "Kubernetes", etc.)
+- Model-specific prompt optimization
+- Context-aware conversation
 
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│   Mikrofon  │───▶│     Vosk     │───▶│   GPT-SW3   │
-│   (Audio)   │    │ (Speech-to-  │    │  (Svenska   │
-│             │    │   Text)      │    │    AI)      │
-└─────────────┘    └──────────────┘    └─────────────┘
-                                              │
-┌─────────────┐    ┌──────────────┐           │
-│  Högtalare  │◀───│     gTTS     │◀──────────┘
-│   (Audio)   │    │ (Text-to-    │
-│             │    │  Speech)     │
-└─────────────┘    └──────────────┘
-```
+## 🤝 Contributing
 
-## 🤝 Bidrag (Contributing)
+1. Fork the repository
+2. Create your feature branch
+3. **DON'T commit the virtual environment** (it's already in `.gitignore`)
+4. Only commit code, documentation, and requirements
+5. Submit a pull request
 
-1. Forka projektet
-2. Skapa en feature-branch
-3. Committa dina ändringar
-4. Pusha till branchen
-5. Öppna en Pull Request
+## 📝 License
 
-## 📄 Licens (License)
-
-Detta projekt är öppen källkod under MIT-licensen.
+MIT License - feel free to use for personal or commercial projects.
 
 ## 🙏 Acknowledgments
 
-- **Vosk**: För utmärkt offline taligenkänning
-- **AI Sweden**: För GPT-SW3 svenska språkmodellen
-- **Hugging Face**: För transformers-biblioteket
-- **Google**: För gTTS text-till-tal
-- **Gradio**: För enkelt webb-gränssnitt
-
-## 📞 Support
-
-Om du stöter på problem:
-
-1. Kolla [Issues](https://github.com/your-repo/issues) först
-2. Skapa en ny Issue med detaljerad beskrivning
-3. Inkludera systeminfo och felmeddelanden
-
----
-
-**Lycka till med din svenska röst-chatbot! 🇸🇪🤖**
+- OpenAI Whisper for speech recognition
+- AI Sweden for GPT-SW3 models
+- Bellman project for excellent Swedish conversation AI
+- Gradio for the web interface
+- Google for Text-to-Speech
