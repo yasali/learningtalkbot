@@ -333,11 +333,11 @@ def create_gradio_interface():
         
         with gr.Row():
             with gr.Column(scale=1):
-                # Audio input
+                # Audio input with multiple sources
                 audio_input = gr.Audio(
-                    sources=["microphone"],
-                    type="filepath",
-                    label="🎤 Klicka för att spela in din röst",
+                    sources=["microphone", "upload"],
+                    type="filepath", 
+                    label="🎤 Spela in din röst ELLER ladda upp ljudfil",
                     elem_id="audio_input"
                 )
                 
