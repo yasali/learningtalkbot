@@ -433,9 +433,10 @@ def main():
         demo.launch(
             server_name="0.0.0.0",  # Allow external access
             server_port=7860,
-            share=False,  # Set to True for public sharing
-            inbrowser=True,  # Open in browser automatically
-            show_error=True
+            share=True,   # Create public URL for remote access
+            inbrowser=False,  # Don't auto-open browser
+            show_error=True,
+            quiet=False
         )
     except KeyboardInterrupt:
         print("\n👋 Chatbot stopped. Hej då!")
