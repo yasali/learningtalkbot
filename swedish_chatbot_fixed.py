@@ -37,6 +37,11 @@ chat_pipeline = None
 current_model_name = None
 conversation_context = []
 is_speaking = False
+# Add new state management for better audio control
+is_listening = False
+should_stop = False
+audio_lock = threading.Lock()
+current_audio_thread = None
 
 def initialize_models():
     """Initialize all AI models at startup"""
@@ -130,11 +135,27 @@ def initialize_models():
 
 def transcribe_audio(audio_file):
     """Convert audio to text using Whisper with better Swedish settings"""
+    global is_listening, should_stop
+    
     try:
-        if audio_file is None:
+        if audio_file is None or should_stop:
             return ""
         
+        is_listening = True
         print(f"🎤 Transcribing Swedish audio...")
+        
+        # Quick check for audio file validity
+        try:
+            import soundfile as sf
+            data, sample_rate = sf.read(audio_file)
+            if len(data) < sample_rate * 0.5:  # Less than 0.5 seconds
+                print("🔇 Audio too short, skipping")
+                return ""
+        except Exception:
+            print("⚠️ Could not validate audio file")
+        
+        if should_stop:
+            return ""
         
         # Load and transcribe with specific Swedish settings
         result = whisper_model.transcribe(
@@ -144,8 +165,12 @@ def transcribe_audio(audio_file):
             temperature=0.0,                 # More deterministic
             no_speech_threshold=0.6,         # Better silence detection
             logprob_threshold=-1.0,          # Less restrictive
-            condition_on_previous_text=False # Don't rely on context
+            condition_on_previous_text=False, # Don't rely on context
+            verbose=False                    # Reduce output noise
         )
+        
+        if should_stop:
+            return ""
         
         text = result["text"].strip()
         
@@ -153,6 +178,7 @@ def transcribe_audio(audio_file):
         text = text.replace("Thanks for watching!", "")
         text = text.replace("Tack för att du tittar!", "")
         text = text.replace("♪", "")
+        text = text.replace("  ", " ")  # Multiple spaces
         
         if text and len(text) > 2:
             print(f"🗣️ User said: '{text}'")
@@ -164,13 +190,15 @@ def transcribe_audio(audio_file):
     except Exception as e:
         print(f"❌ Speech recognition error: {e}")
         return ""
+    finally:
+        is_listening = False
 
 def get_chatbot_response(user_input):
-    """Generate AI response with improved formatting"""
-    global conversation_context
+    """Generate AI response with improved formatting and context"""
+    global conversation_context, should_stop
     
     try:
-        if not user_input.strip():
+        if not user_input.strip() or should_stop:
             return "Jag hörde inget tydligt. Kan du säga det igen?"
         
         # Clean up user input
@@ -178,75 +206,97 @@ def get_chatbot_response(user_input):
         
         print(f"🤖 Generating response for: '{user_input}'")
         
-        # Create appropriate prompt based on model type
+        # Add to conversation context for better continuity
+        conversation_context.append({"role": "user", "content": user_input})
+        
+        # Keep context manageable (last 6 turns)
+        if len(conversation_context) > 6:
+            conversation_context = conversation_context[-6:]
+        
+        # Create context-aware prompt based on model type
         if "bellman" in current_model_name.lower():
             # Bellman/Mistral works best with instruction format
-            prompt = f"[INST]Du är en vänlig svensk AI-assistent. Svara kort och naturligt på svenska.\n\nAnvändare: {user_input}[/INST]"
+            context_str = ""
+            if len(conversation_context) > 1:
+                recent_context = conversation_context[-3:]  # Last 3 exchanges
+                context_str = "\n".join([f"{msg['role'].title()}: {msg['content']}" for msg in recent_context[:-1]])
+                context_str = f"Tidigare konversation:\n{context_str}\n\n"
+            
+            prompt = f"[INST]Du är en vänlig svensk AI-assistent som har naturliga konversationer. Svara kort och naturligt på svenska.\n\n{context_str}Användare: {user_input}[/INST]"
             
         elif "gpt-sw3" in current_model_name.lower():
             # GPT-SW3 needs careful prompting to avoid weird formatting
-            prompt = f"Detta är en naturlig konversation på svenska.\n\nAnvändare: {user_input}\nAssistent:"
+            context_str = ""
+            if len(conversation_context) > 1:
+                context_str = f"Tidigare sa användaren: {conversation_context[-2]['content'] if len(conversation_context) >= 2 else ''}\n"
+            
+            prompt = f"Detta är en naturlig konversation på svenska.\n{context_str}\nAnvändare: {user_input}\nAssistent:"
             
         elif "DialoGPT" in current_model_name:
-            # DialoGPT works best with direct input
-            prompt = user_input
+            # DialoGPT works best with conversational context
+            if len(conversation_context) > 1:
+                # Build conversation history
+                context_parts = []
+                for msg in conversation_context[-4:]:  # Last 4 messages
+                    if msg['role'] == 'user':
+                        context_parts.append(msg['content'])
+                    else:
+                        context_parts.append(msg['content'])
+                prompt = " ".join(context_parts[-3:]) + f" {user_input}"
+            else:
+                prompt = user_input
             
         else:
-            # Generic format
-            prompt = f"Svara på svenska: {user_input}\nSvar:"
+            # Generic format with some context
+            recent_context = conversation_context[-2]['content'] if len(conversation_context) >= 2 else ""
+            context_str = f"Tidigare: {recent_context}\n" if recent_context else ""
+            prompt = f"{context_str}Svara på svenska: {user_input}\nSvar:"
+        
+        if should_stop:
+            return "Konversationen avbröts."
         
         # Generate response with better settings
         response = chat_pipeline(
             prompt,
-            max_new_tokens=40,           # Shorter responses
-            num_return_sequences=1,
-            temperature=0.8,
-            top_p=0.9,
+            max_new_tokens=40,     # Shorter for more natural conversation
             do_sample=True,
+            temperature=0.7,       # Slightly more creative
+            top_p=0.85,           # More focused
+            repetition_penalty=1.1,
             pad_token_id=chat_pipeline.tokenizer.eos_token_id,
-            eos_token_id=chat_pipeline.tokenizer.eos_token_id
+            eos_token_id=chat_pipeline.tokenizer.eos_token_id,
+            return_full_text=False
         )
         
-        # Extract and clean generated text
-        generated = response[0]['generated_text']
+        if should_stop:
+            return "Konversationen avbröts."
         
-        # Clean up response based on model type
+        # Extract and clean response
+        bot_response = response[0]['generated_text'].strip()
+        
+        # Model-specific cleanup
         if "bellman" in current_model_name.lower():
-            # Extract text after [/INST]
-            if "[/INST]" in generated:
-                bot_response = generated.split("[/INST]")[-1].strip()
-            else:
-                bot_response = generated.replace(prompt, "").strip()
-                
+            # Remove instruction markers
+            bot_response = bot_response.replace("[/INST]", "").replace("[INST]", "")
+            
         elif "gpt-sw3" in current_model_name.lower():
-            # Remove the prompt and clean up GPT-SW3 formatting
-            bot_response = generated.replace(prompt, "").strip()
-            
             # Remove common GPT-SW3 artifacts
-            lines = bot_response.split('\n')
-            clean_lines = []
-            for line in lines:
-                line = line.strip()
-                # Skip lines that look like metadata
-                if not any(x in line.lower() for x in ['datum:', 'användare:', 'assistent:', 'kubernetes', 'docker', '20']):
-                    if line and len(line) > 3:
-                        clean_lines.append(line)
-            
-            bot_response = ' '.join(clean_lines[:2])  # Take first 2 clean lines max
+            bot_response = bot_response.replace("Assistent:", "").replace("AI:", "")
             
         elif "DialoGPT" in current_model_name:
-            # DialoGPT often generates after a newline
-            if len(generated) > len(user_input):
-                bot_response = generated[len(user_input):].strip()
-            else:
-                bot_response = "Kan du säga det igen?"
-                
-        else:
-            # Generic cleanup
-            bot_response = generated.replace(prompt, "").strip()
-            for prefix in ["Svar:", "Assistant:", "AI:", "Bot:"]:
-                if bot_response.startswith(prefix):
-                    bot_response = bot_response[len(prefix):].strip()
+            # Clean up DialoGPT repetition
+            sentences = bot_response.split('.')
+            if len(sentences) > 1:
+                bot_response = sentences[0] + '.'
+        
+        # General cleanup
+        bot_response = bot_response.replace(user_input, "")  # Remove echo
+        bot_response = bot_response.replace("Användare:", "")
+        bot_response = bot_response.replace("Svar:", "")
+        
+        # Remove weird formatting and repetition
+        lines = bot_response.split('\n')
+        bot_response = lines[0].strip() if lines else bot_response.strip()
         
         # Final cleanup
         bot_response = bot_response.replace('\n', ' ').strip()
@@ -254,10 +304,10 @@ def get_chatbot_response(user_input):
         # Ensure it's reasonable Swedish
         if len(bot_response) < 3:
             bot_response = "Ursäkta, kan du upprepa det?"
-        elif len(bot_response) > 150:
+        elif len(bot_response) > 100:  # Shorter responses for better flow
             # Truncate at sentence boundary
             sentences = bot_response.split('.')
-            bot_response = sentences[0] + '.' if sentences[0] else bot_response[:100] + '...'
+            bot_response = sentences[0] + '.' if sentences[0] else bot_response[:80] + '...'
         
         # Remove any remaining weird characters or formatting
         import re
@@ -267,6 +317,9 @@ def get_chatbot_response(user_input):
         if not bot_response:
             bot_response = "Jag förstod inte riktigt. Kan du fråga något annat?"
         
+        # Add AI response to context
+        conversation_context.append({"role": "assistant", "content": bot_response})
+        
         print(f"🤖 AI Response: '{bot_response}'")
         return bot_response
         
@@ -275,18 +328,25 @@ def get_chatbot_response(user_input):
         return "Ursäkta, jag hade tekniska problem. Försök igen."
 
 def speak_text(text):
-    """Convert text to speech and play it"""
-    global is_speaking
+    """Convert text to speech and play it with better control"""
+    global is_speaking, should_stop, current_audio_thread
     
     try:
-        if not text or len(text.strip()) == 0:
+        if not text or len(text.strip()) == 0 or should_stop:
             return
         
-        is_speaking = True
+        with audio_lock:
+            is_speaking = True
+        
         print(f"🔊 Speaking: '{text}'")
         
-        # Initialize pygame mixer
-        pygame.mixer.init()
+        # Initialize pygame mixer with better settings
+        try:
+            pygame.mixer.quit()  # Clean shutdown if already running
+        except:
+            pass
+        
+        pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=1024)
         
         # Create TTS audio with slower speed for clarity
         tts = gTTS(text=text, lang='sv', slow=False)
@@ -295,13 +355,20 @@ def speak_text(text):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tts.save(tmp_file.name)
             
-            # Play the audio
+            if should_stop:
+                return
+            
+            # Play the audio with interruption capability
             pygame.mixer.music.load(tmp_file.name)
             pygame.mixer.music.play()
             
-            # Wait for playback to complete
-            while pygame.mixer.music.get_busy():
+            # Wait for playback to complete or interruption
+            while pygame.mixer.music.get_busy() and not should_stop:
                 time.sleep(0.1)
+            
+            # Stop playback if interrupted
+            if should_stop:
+                pygame.mixer.music.stop()
             
             # Clean up
             pygame.mixer.music.unload()
@@ -315,17 +382,26 @@ def speak_text(text):
     except Exception as e:
         print(f"❌ Error with text-to-speech: {e}")
     finally:
-        is_speaking = False
+        with audio_lock:
+            is_speaking = False
 
 def process_conversation_turn(audio):
-    """Process one turn of conversation with better error handling"""
+    """Process one turn of conversation with better error handling and interruption support"""
+    global current_audio_thread, should_stop
+    
     try:
         if audio is None:
             return "", "Ingen ljudfil. Försök igen.", [], "🎤 Redo att lyssna"
         
+        # Reset stop flag for new conversation turn
+        should_stop = False
+        
         # Step 1: Convert speech to text
         print("🎤 Processing audio...")
         user_text = transcribe_audio(audio)
+        
+        if should_stop:
+            return "", "Konversationen avbröts.", [], "🎤 Redo att lyssna"
         
         if not user_text:
             return "", "Kunde inte höra svenska ord. Tala tydligare.", [], "🎤 Redo att lyssna"
@@ -334,21 +410,56 @@ def process_conversation_turn(audio):
         print("🤖 Generating Swedish response...")
         bot_response = get_chatbot_response(user_text)
         
-        # Step 3: Speak the response (in background)
+        if should_stop:
+            return user_text, "Konversationen avbröts.", [], "🎤 Redo att lyssna"
+        
+        # Step 3: Speak the response (in background with better management)
         print("🔊 Starting speech...")
-        speech_thread = threading.Thread(target=speak_text, args=(bot_response,))
-        speech_thread.daemon = True
-        speech_thread.start()
+        
+        # Stop any existing speech
+        if current_audio_thread and current_audio_thread.is_alive():
+            should_stop = True
+            current_audio_thread.join(timeout=1.0)  # Wait briefly for cleanup
+        
+        # Reset stop flag and start new speech
+        should_stop = False
+        current_audio_thread = threading.Thread(target=speak_text, args=(bot_response,))
+        current_audio_thread.daemon = True
+        current_audio_thread.start()
         
         # Step 4: Update conversation history
         new_exchange = [user_text, bot_response]
         
-        return user_text, bot_response, [new_exchange], "🎤 Redo att lyssna"
+        return user_text, bot_response, [new_exchange], "🎤 Lyssnar... (prata igen eller vänta på svar)"
         
     except Exception as e:
         error_msg = f"Fel: {str(e)[:50]}"
         print(f"❌ {error_msg}")
-        return "", "Tekniskt fel. Försök igen.", [], "❌ Fel - försök igen"
+        return "", f"Tekniskt fel: {error_msg}", [], "🎤 Redo att lyssna"
+
+def stop_conversation():
+    """Stop current conversation and audio playback"""
+    global should_stop, current_audio_thread, is_speaking, is_listening
+    
+    print("⏹️ Stopping conversation...")
+    should_stop = True
+    
+    # Stop audio playback
+    try:
+        pygame.mixer.music.stop()
+    except:
+        pass
+    
+    # Wait for threads to finish
+    if current_audio_thread and current_audio_thread.is_alive():
+        current_audio_thread.join(timeout=1.0)
+    
+    # Reset states
+    with audio_lock:
+        is_speaking = False
+        is_listening = False
+    
+    return "Konversationen stoppad. Klicka igen för att börja prata."
 
 def create_fixed_interface():
     """Create an improved conversational interface"""
@@ -408,11 +519,16 @@ def create_fixed_interface():
             elem_classes=["status-display"]
         )
         
+        # Control buttons
+        with gr.Row():
+            stop_button = gr.Button("⏹️ Stoppa konversation", variant="secondary", size="sm")
+            reset_button = gr.Button("🔄 Rensa historik", variant="secondary", size="sm")
+        
         # Microphone section
         gr.HTML("""
         <div class="mic-section">
             <h2>🎤 Tala svenska här!</h2>
-            <p>Säg något kort och tydligt</p>
+            <p>Säg något kort och tydligt - vänta på svar innan du pratar igen</p>
         </div>
         """)
         
@@ -466,10 +582,33 @@ def create_fixed_interface():
             
             return user_text, ai_response, history, history, status
         
+        def handle_stop():
+            """Handle stop button click"""
+            stop_msg = stop_conversation()
+            return "", "", stop_msg
+        
+        def handle_reset():
+            """Handle reset button click"""
+            global conversation_context
+            conversation_context = []
+            stop_conversation()
+            return "", "", [], [], "🎤 Historik rensad - redo att börja på nytt"
+        
         # Connect audio to processing
         audio_input.change(
             fn=handle_audio_input,
             inputs=[audio_input, chat_state],
+            outputs=[last_user_text, last_ai_response, conversation_history, chat_state, status_display]
+        )
+        
+        # Connect control buttons
+        stop_button.click(
+            fn=handle_stop,
+            outputs=[last_user_text, last_ai_response, status_display]
+        )
+        
+        reset_button.click(
+            fn=handle_reset,
             outputs=[last_user_text, last_ai_response, conversation_history, chat_state, status_display]
         )
         
@@ -480,11 +619,15 @@ def create_fixed_interface():
             <ul style="font-size: 1.1em; line-height: 1.6;">
                 <li><strong>🗣️ Tala tydligt</strong> - inte för snabbt eller långsamt</li>
                 <li><strong>📱 Kortare meningar</strong> - 5-10 ord fungerar bäst</li>
-                <li><strong>⏳ Vänta</strong> - låt AI:n svara färdigt innan du pratar igen</li>
-                <li><strong>🔄 Försök igen</strong> - om det blev fel, säg samma sak igen</li>
+                <li><strong>⏳ Vänta på svar</strong> - låt AI:n svara färdigt innan du pratar igen</li>
+                <li><strong>⏹️ Använd Stoppa</strong> - för att avbryta pågående konversation</li>
+                <li><strong>🔄 Rensa historik</strong> - för att börja ett nytt ämne</li>
+                <li><strong>🔄 Försök igen</strong> - om transkriptionen blev fel</li>
             </ul>
             <h4>🎯 Bra testfraser:</h4>
-            <p><em>"Hej, vad heter du?" • "Hur mår du?" • "Vad gillar du?" • "Berätta om Sverige"</em></p>
+            <p><em>"Hej, vad heter du?" • "Hur mår du idag?" • "Vad gillar du?" • "Berätta om Sverige" • "Vad gör du?"</em></p>
+            <h4>⚠️ Viktigt:</h4>
+            <p><em>Vänta tills AI:n slutat prata innan du säger något nytt. Använd Stoppa-knappen om något går fel.</em></p>
         </div>
         """)
     
